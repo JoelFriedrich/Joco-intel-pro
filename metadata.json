@@ -1,5 +1,5 @@
 {
-  "name": "JoCo Intel",
+  "name": "PlotPoint",
   "description": "Professional real estate investor research tool for Johnson County, Kansas.",
   "requestFramePermissions": [
     "geolocation"

@@ -1,14 +1,29 @@
 import React from 'react';
-import { Search, Filter, ChevronDown } from 'lucide-react';
+import { Search, Filter, ChevronDown, Save, Table as TableIcon, LayoutDashboard, Map as MapIcon, Settings as SettingsIcon, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { AppView, UserPlan } from '../types';
 
 interface FilterBarProps {
   filters: any;
   setFilters: (filters: any) => void;
   resultCount: number;
+  currentView: AppView;
+  setCurrentView: (view: AppView) => void;
+  onSaveFilter: () => void;
+  onDownloadCSV: () => void;
+  userPlan: UserPlan;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ filters, setFilters, resultCount }) => {
+export const FilterBar: React.FC<FilterBarProps> = ({ 
+  filters, 
+  setFilters, 
+  resultCount, 
+  currentView, 
+  setCurrentView,
+  onSaveFilter,
+  onDownloadCSV,
+  userPlan
+}) => {
   const propClasses = ['R', 'C', 'V', 'A', 'E', 'O'];
 
   const toggleClass = (cls: string) => {
@@ -194,10 +209,67 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters, setFilters, resul
               <option value="yoyDesc">YoY Change: High to Low</option>
             </select>
           </div>
+
+          <button 
+            onClick={onSaveFilter}
+            className="flex items-center gap-2 bg-black/40 hover:bg-black/60 border border-gray-700 rounded-lg py-1.5 px-3 text-xs font-bold text-gray-300 transition-all"
+          >
+            <Save size={14} className="text-accent-amber" />
+            Save Filter
+          </button>
         </div>
 
-        <div className="text-xs font-mono text-gray-500">
-          Showing <span className="text-accent-amber font-bold">{resultCount}</span> properties
+        <div className="flex items-center gap-4">
+          <div className="flex bg-black/40 p-1 rounded-lg border border-gray-700">
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className={cn(
+                "px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5",
+                currentView === 'dashboard' ? "bg-accent-amber text-black" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              <LayoutDashboard size={12} />
+              Dashboard
+            </button>
+            <button
+              onClick={() => setCurrentView('table')}
+              className={cn(
+                "px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5",
+                currentView === 'table' ? "bg-accent-amber text-black" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              <TableIcon size={12} />
+              Table
+            </button>
+            <button
+              onClick={() => setCurrentView('map')}
+              className={cn(
+                "px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5",
+                currentView === 'map' ? "bg-accent-amber text-black" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              <MapIcon size={12} />
+              Map
+            </button>
+          </div>
+
+          <button
+            onClick={onDownloadCSV}
+            className={cn(
+              "flex items-center gap-2 border rounded-lg py-1.5 px-3 text-xs font-bold transition-all",
+              userPlan === 'Free' 
+                ? "bg-gray-800/50 border-gray-700 text-gray-500 cursor-not-allowed" 
+                : "bg-positive-green/10 border-positive-green/20 text-positive-green hover:bg-positive-green/20"
+            )}
+            title={userPlan === 'Free' ? "Pro Feature Only" : "Download CSV"}
+          >
+            <Download size={14} />
+            CSV
+          </button>
+
+          <div className="text-xs font-mono text-gray-500">
+            Showing <span className="text-accent-amber font-bold">{resultCount}</span> properties
+          </div>
         </div>
       </div>
     </div>

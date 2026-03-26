@@ -10,14 +10,28 @@ import { PropertyMap } from './components/PropertyMap';
 import { PropertyList } from './components/PropertyList';
 import { FilterBar } from './components/FilterBar';
 import { PropertyDetail } from './components/PropertyDetail';
-import { calculateDistressScore } from './lib/utils';
-import { Layout, Database, ShieldCheck, Info } from 'lucide-react';
+import { TableView } from './components/TableView';
+import { Settings } from './components/Settings';
+import { calculateDistressScore, cn } from './lib/utils';
+import { Layout, Database, ShieldCheck, Info, Settings as SettingsIcon, X } from 'lucide-react';
+import { AppView, UserPlan, SavedFilter } from './types';
 
 export default function App() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [route, setRoute] = useState(window.location.hash);
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
+  const [userPlan, setUserPlan] = useState<UserPlan>('Free');
+  const [userProfile, setUserProfile] = useState({
+    name: 'Joel Friedrich',
+    email: 'joelfriedrichdev@gmail.com',
+    location: 'Kansas City, MO',
+    memberSince: 'March 2026'
+  });
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newFilterName, setNewFilterName] = useState('');
 
   const [filters, setFilters] = useState({
     search: '',
@@ -72,6 +86,59 @@ export default function App() {
 
     fetchProperties();
   }, []);
+
+  const handleSaveFilter = () => {
+    setShowSaveModal(true);
+  };
+
+  const confirmSaveFilter = () => {
+    if (!newFilterName.trim()) return;
+    
+    const newFilter: SavedFilter = {
+      id: crypto.randomUUID(),
+      name: newFilterName,
+      filters: { ...filters },
+      createdAt: new Date().toISOString(),
+    };
+    
+    setSavedFilters(prev => [newFilter, ...prev]);
+    setNewFilterName('');
+    setShowSaveModal(false);
+  };
+
+  const handleDownloadCSV = () => {
+    if (userPlan === 'Free') {
+      alert("CSV Export is a Pro feature. Please upgrade your plan in Settings.");
+      return;
+    }
+
+    // Simple CSV generation
+    const headers = ['Address', 'City', 'Zip', 'Owner', 'Value', 'Year Built', 'Class'];
+    const rows = filteredProperties.map(p => [
+      p.situs_address,
+      p.city,
+      p.zip,
+      p.owner1_name,
+      p.noav_curr_appraised,
+      p.year_built || p.dwelling?.pdf_year_built || '',
+      p.prop_class
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `plotpoint_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Filter and Sort Logic
   const filteredProperties = useMemo(() => {
@@ -188,12 +255,18 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden bg-dark-bg">
       {/* Header */}
       <header className="bg-[#16191d] border-b border-gray-800 px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent-amber rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(239,159,39,0.3)]">
+        <div 
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={() => {
+            setCurrentView('dashboard');
+            window.location.hash = '#/';
+          }}
+        >
+          <div className="w-10 h-10 bg-accent-amber rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(239,159,39,0.3)] group-hover:scale-105 transition-transform">
             <Database className="text-black" size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tighter">JOCO INTEL</h1>
+            <h1 className="text-xl font-black text-white tracking-tighter group-hover:text-accent-amber transition-colors">PlotPoint</h1>
             <div className="flex items-center gap-2 text-[10px] uppercase font-black text-gray-500 tracking-widest">
               <ShieldCheck size={12} className="text-accent-amber" />
               Investor Research Terminal
@@ -210,6 +283,15 @@ export default function App() {
             </div>
           </div>
           <div className="h-8 w-px bg-gray-800" />
+          <button 
+            onClick={() => setCurrentView('settings')}
+            className={cn(
+              "p-2 rounded-lg transition-all",
+              currentView === 'settings' ? "bg-accent-amber text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            <SettingsIcon size={20} />
+          </button>
           <button className="text-gray-400 hover:text-white transition-colors">
             <Info size={20} />
           </button>
@@ -217,36 +299,124 @@ export default function App() {
       </header>
 
       {/* Filter Bar */}
-      <FilterBar 
-        filters={filters} 
-        setFilters={setFilters} 
-        resultCount={filteredProperties.length} 
-      />
+      {currentView !== 'settings' && (
+        <FilterBar 
+          filters={filters} 
+          setFilters={setFilters} 
+          resultCount={filteredProperties.length}
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          onSaveFilter={handleSaveFilter}
+          onDownloadCSV={handleDownloadCSV}
+          userPlan={userPlan}
+        />
+      )}
 
       {/* Main Content */}
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
             <div className="w-12 h-12 border-4 border-accent-amber border-t-transparent rounded-full animate-spin mb-4" />
             <p className="font-mono text-sm uppercase tracking-widest">Initializing Terminal...</p>
           </div>
         ) : (
-          <>
-            <div className="w-[58%] h-full">
-              <PropertyMap 
-                properties={filteredProperties} 
-                selectedProperty={selectedProperty}
-                onSelectProperty={setSelectedProperty}
-              />
+          <div className="flex-1 flex overflow-hidden">
+            {currentView === 'dashboard' && (
+              <div className="flex-1 flex overflow-hidden">
+                <div className="w-[58%] h-full border-r border-gray-800">
+                  <PropertyMap 
+                    properties={filteredProperties} 
+                    selectedProperty={selectedProperty}
+                    onSelectProperty={setSelectedProperty}
+                  />
+                </div>
+                <div className="w-[42%] h-full overflow-hidden">
+                  <PropertyList 
+                    properties={filteredProperties} 
+                    selectedProperty={selectedProperty}
+                    onSelectProperty={setSelectedProperty}
+                  />
+                </div>
+              </div>
+            )}
+            {currentView === 'table' && (
+              <div className="flex-1 overflow-hidden">
+                <TableView 
+                  properties={filteredProperties} 
+                  onSelectProperty={setSelectedProperty}
+                />
+              </div>
+            )}
+            {currentView === 'map' && (
+              <div className="flex-1 h-full">
+                <PropertyMap 
+                  properties={filteredProperties} 
+                  selectedProperty={selectedProperty}
+                  onSelectProperty={setSelectedProperty}
+                />
+              </div>
+            )}
+            {currentView === 'settings' && (
+              <div className="flex-1 overflow-hidden">
+                <Settings 
+                  userPlan={userPlan}
+                  setUserPlan={setUserPlan}
+                  userProfile={userProfile}
+                  setUserProfile={setUserProfile}
+                  savedFilters={savedFilters}
+                  onDeleteFilter={(id) => setSavedFilters(prev => prev.filter(f => f.id !== id))}
+                  onApplyFilter={(f) => {
+                    setFilters(f);
+                    setCurrentView('dashboard');
+                  }}
+                  onBack={() => setCurrentView('dashboard')}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save Filter Modal */}
+        {showSaveModal && (
+          <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#16191d] border border-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter">Save Current Filter</h3>
+                <button onClick={() => setShowSaveModal(false)} className="text-gray-500 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-gray-500 tracking-widest block mb-1">Filter Name</label>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="e.g., High Distress Kansas City"
+                    className="w-full bg-black/40 border border-gray-700 rounded-lg py-2 px-4 text-sm text-white focus:outline-none focus:border-accent-amber"
+                    value={newFilterName}
+                    onChange={(e) => setNewFilterName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && confirmSaveFilter()}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowSaveModal(false)}
+                    className="flex-1 py-2 px-4 rounded-lg text-sm font-bold text-gray-400 hover:bg-gray-800 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmSaveFilter}
+                    disabled={!newFilterName.trim()}
+                    className="flex-1 py-2 px-4 bg-accent-amber text-black rounded-lg text-sm font-bold hover:bg-accent-amber/90 transition-all disabled:opacity-50"
+                  >
+                    Save Filter
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="w-[42%] h-full">
-              <PropertyList 
-                properties={filteredProperties} 
-                selectedProperty={selectedProperty}
-                onSelectProperty={setSelectedProperty}
-              />
-            </div>
-          </>
+          </div>
         )}
       </main>
     </div>

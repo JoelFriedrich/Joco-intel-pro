@@ -107,3 +107,13 @@ export interface PropertyEvent {
   occurred_at: string;
   summary: string;
 }
+
+export type AppView = 'dashboard' | 'table' | 'map' | 'settings';
+export type UserPlan = 'Free' | 'Pro' | 'Enterprise';
+
+export interface SavedFilter {
+  id: string;
+  name: string;
+  filters: any;
+  createdAt: string;
+}

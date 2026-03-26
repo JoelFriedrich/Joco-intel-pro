@@ -111,7 +111,22 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({ quickRef, onBack
   }
 
   const { property, dwelling, tax, permits, sales, comps, history, photos, events } = data;
-  if (!property) return <div className="p-10 text-center">Property not found</div>;
+  if (!property) return (
+    <div className="h-full flex flex-col items-center justify-center bg-dark-bg text-gray-500 p-10 text-center">
+      <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-6">
+        <Home size={32} className="text-gray-600" />
+      </div>
+      <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Property Not Found</h2>
+      <p className="text-sm text-gray-500 max-w-xs mb-8">This property might not be in the current dataset or the reference is invalid.</p>
+      <button 
+        onClick={onBack}
+        className="flex items-center gap-2 bg-accent-amber text-black px-6 py-2 rounded-xl font-bold text-sm hover:bg-accent-amber/90 transition-all"
+      >
+        <ArrowLeft size={18} />
+        Back to Terminal
+      </button>
+    </div>
+  );
 
   // Ensure 2025 is in the history chart
   const chartData = [...history];
@@ -313,18 +328,23 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({ quickRef, onBack
 
                       // 2. From comps table (if it's the subject property)
                       comps.forEach(c => {
-                        if (c.comp_address?.toLowerCase() === property.situs_address?.toLowerCase()) {
+                        // Check if this comp entry actually refers to the subject property
+                        // Sometimes the subject property is included in the comps list for comparison
+                        const isSubject = (c.comp_quick_ref && c.comp_quick_ref === property.quick_ref) || 
+                                        (c.comp_address && property.situs_address && c.comp_address.toLowerCase().trim() === property.situs_address.toLowerCase().trim());
+                        
+                        if (isSubject && c.sale_date) {
                           // Only add if not already present by date (to avoid duplicates)
                           if (!allSales.some(s => s.date === c.sale_date)) {
                             allSales.push({
                               date: c.sale_date,
-                              type: 'Market Sale (Comp)',
+                              type: 'Market Sale (Comp Data)',
                               price: c.sale_price
                             });
                           } else {
                             // If already present, update price if missing
                             const existing = allSales.find(s => s.date === c.sale_date);
-                            if (existing && !existing.price) {
+                            if (existing && !existing.price && c.sale_price) {
                               existing.price = c.sale_price;
                             }
                           }
