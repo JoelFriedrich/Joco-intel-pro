@@ -1,0 +1,7 @@
+{
+  "name": "JoCo Intel",
+  "description": "Professional real estate investor research tool for Johnson County, Kansas.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

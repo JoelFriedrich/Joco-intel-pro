@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-dark-bg: #0d0f12;
+  --color-accent-amber: #EF9F27;
+  --color-distress-red: #E24B4A;
+  --color-positive-green: #3db87a;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-gray-100 font-sans;
+  }
+}
+
+/* Leaflet Dark Mode Adjustments */
+.leaflet-container {
+  background: #0d0f12 !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1d21;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
